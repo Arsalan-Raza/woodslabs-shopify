@@ -8,28 +8,33 @@ const importRouter = require('./routes/import');
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
-// Auto-create slab_pricing table on startup
-async function migrate() {
-  try {
-    await db.execute(`
-      CREATE TABLE IF NOT EXISTS slab_pricing (
-        id            INT AUTO_INCREMENT PRIMARY KEY,
-        material      VARCHAR(20)    NOT NULL,
-        finish        VARCHAR(12)    NOT NULL,
-        product_type  VARCHAR(8)     NOT NULL,
-        hardware      VARCHAR(3)     NOT NULL,
-        thickness     VARCHAR(8)     NOT NULL,
-        depth         VARCHAR(10)    NOT NULL,
-        width_inches  TINYINT        NOT NULL,
-        price         DECIMAL(10,2)  NOT NULL,
-        placeholder   CHAR(3)        NOT NULL DEFAULT 'no',
-        INDEX idx_lookup (material, finish, product_type, hardware, thickness, depth, width_inches)
-      )
-    `);
-    console.log('Database ready (slab_pricing table exists).');
-  } catch (err) {
-    console.error('Migration error:', err.message);
+// Auto-create slab_pricing table on startup (retries for proxy warm-up)
+async function migrate(attempts = 10, delayMs = 3000) {
+  for (let i = 1; i <= attempts; i++) {
+    try {
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS slab_pricing (
+          id            INT AUTO_INCREMENT PRIMARY KEY,
+          material      VARCHAR(20)    NOT NULL,
+          finish        VARCHAR(12)    NOT NULL,
+          product_type  VARCHAR(8)     NOT NULL,
+          hardware      VARCHAR(3)     NOT NULL,
+          thickness     VARCHAR(8)     NOT NULL,
+          depth         VARCHAR(10)    NOT NULL,
+          width_inches  TINYINT        NOT NULL,
+          price         DECIMAL(10,2)  NOT NULL,
+          placeholder   CHAR(3)        NOT NULL DEFAULT 'no',
+          INDEX idx_lookup (material, finish, product_type, hardware, thickness, depth, width_inches)
+        )
+      `);
+      console.log('Database ready (slab_pricing table exists).');
+      return;
+    } catch (err) {
+      console.error(`Migration attempt ${i}/${attempts} failed: ${err.message}`);
+      if (i < attempts) await new Promise(r => setTimeout(r, delayMs));
+    }
   }
+  console.error('Could not connect to database after all retries. Continuing anyway.');
 }
 
 // Parse JSON bodies
