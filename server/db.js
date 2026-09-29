@@ -8,7 +8,8 @@ const pool = mysql.createPool({
   database: process.env.MYSQLDATABASE || 'railway',
   waitForConnections: true,
   connectionLimit: 10,
-  ssl: { rejectUnauthorized: false },
+  // SSL disabled — Railway TCP proxy handles transport security
+
 });
 
 module.exports = pool;
