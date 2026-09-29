@@ -1,0 +1,17 @@
+{
+  "name": "woodslabs-price-server",
+  "version": "1.0.0",
+  "description": "WoodSlabs server-side price lookup API and CSV import tool",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "csv-parse": "^5.5.6",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "multer": "^1.4.5-lts.1",
+    "mysql2": "^3.10.1"
+  }
+}
