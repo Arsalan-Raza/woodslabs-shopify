@@ -1,0 +1,18 @@
+# client files — never committed (confidentiality + repo size)
+/assets/
+
+# local secrets
+.project.local.env
+
+# OS / editor
+.DS_Store
+Thumbs.db
+
+# dependencies
+node_modules/
+.venv/
+
+# build artifacts
+*.zip
+dist/
+build/
