@@ -8,9 +8,6 @@ const pool = mysql.createPool({
   database: process.env.MYSQLDATABASE || 'railway',
   waitForConnections: true,
   connectionLimit: 10,
-  // MySQL 9.x uses caching_sha2_password; this lets the client fetch
-  // the server's RSA public key needed for auth without TLS.
-  allowPublicKeyRetrieval: true,
 });
 
 module.exports = pool;
