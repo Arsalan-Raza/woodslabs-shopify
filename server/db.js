@@ -8,6 +8,9 @@ const pool = mysql.createPool({
   database: process.env.MYSQLDATABASE || 'railway',
   waitForConnections: true,
   connectionLimit: 10,
+  ssl: process.env.MYSQLHOST && process.env.MYSQLHOST.includes('railway')
+    ? { rejectUnauthorized: false }
+    : false,
 });
 
 module.exports = pool;
