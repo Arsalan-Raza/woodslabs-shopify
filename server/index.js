@@ -4,6 +4,7 @@ const db      = require('./db');
 
 const priceRouter  = require('./routes/price');
 const importRouter = require('./routes/import');
+const authRouter   = require('./routes/auth');
 
 const app  = express();
 const PORT = process.env.PORT || 3000;
@@ -43,6 +44,10 @@ app.use(express.urlencoded({ extended: true }));
 
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
+
+// Shopify OAuth install flow
+app.use('/auth/callback', authRouter);
+app.use('/', authRouter);
 
 // Price lookup — accessed via Shopify App Proxy at /apps/woodslabs/price
 app.use('/apps/woodslabs/price', priceRouter);
