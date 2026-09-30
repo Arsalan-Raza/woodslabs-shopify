@@ -23,6 +23,12 @@ router.get('/', async (req, res) => {
     return res.status(400).json({ error: 'width_inches must be an integer between 9 and 96' });
   }
 
+  // Shopify's App Proxy strips the inch-mark (") from URL params.
+  // Normalize: always ensure thickness ends with " to match DB values.
+  const normalizedThickness = thickness.trim().endsWith('"')
+    ? thickness.trim()
+    : thickness.trim() + '"';
+
   try {
     const [rows] = await db.execute(
       `SELECT price, placeholder FROM slab_pricing
@@ -35,7 +41,7 @@ router.get('/', async (req, res) => {
         finish.trim().toLowerCase(),
         product_type.trim().toLowerCase(),
         hardware.trim().toLowerCase(),
-        thickness.trim(),
+        normalizedThickness,
         depth.trim(),
         widthInt,
       ]
@@ -55,7 +61,7 @@ router.get('/', async (req, res) => {
       finish.trim().toLowerCase(),
       product_type.trim().toLowerCase(),
       hardware.trim().toLowerCase(),
-      thickness.trim(),
+      normalizedThickness,
       depth.trim(),
       widthInt,
       price.toFixed(2),
