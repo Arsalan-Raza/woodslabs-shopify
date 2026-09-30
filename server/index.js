@@ -28,6 +28,12 @@ async function migrate(attempts = 10, delayMs = 3000) {
           INDEX idx_lookup (material, finish, product_type, hardware, thickness, depth, width_inches)
         )
       `);
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS shop_tokens (
+          shop   VARCHAR(100) PRIMARY KEY,
+          token  VARCHAR(255) NOT NULL
+        )
+      `);
       console.log('Database ready (slab_pricing table exists).');
       return;
     } catch (err) {

@@ -4,7 +4,7 @@ application_url = "https://woodslabs-api-production.up.railway.app"
 embedded = false
 
 [access_scopes]
-scopes = "read_products,write_products"
+scopes = "read_products,write_products,write_cart_transforms"
 
 [auth]
 redirect_urls = ["https://woodslabs-api-production.up.railway.app/auth/callback"]

@@ -1,0 +1,19 @@
+query CartTransformRunInput {
+  cart {
+    lines {
+      id
+      quantity
+      merchandise {
+        ... on ProductVariant {
+          id
+        }
+      }
+      priceProp: attribute(key: "_price") {
+        value
+      }
+      sigProp: attribute(key: "_sig") {
+        value
+      }
+    }
+  }
+}
