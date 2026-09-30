@@ -1,0 +1,152 @@
+{% comment %}
+  wood-configurator.liquid
+  Custom order form for WoodSlabs — Material Type 10.
+  Server-side price lookup via App Proxy /apps/woodslabs/price.
+{% endcomment %}
+
+{{ 'wood-configurator.css' | asset_url | stylesheet_tag }}
+
+{%- assign current_variant = product.selected_or_first_available_variant -%}
+
+<section class="wood-configurator" id="wood-configurator-section">
+  <form id="wood-configurator-form" novalidate>
+
+    {%- comment %} Hidden: variant ID for cart.add {% endcomment -%}
+    <span data-variant-id="{{ current_variant.id }}" style="display:none"></span>
+
+    {%- comment %} ── 1. Material & Finish (fixed, shown for transparency) ── {% endcomment -%}
+    <div class="wood-configurator__field">
+      <span class="wood-configurator__label">Material</span>
+      <p style="margin:0;font-size:0.95rem;">Material Type 10</p>
+    </div>
+
+    <div class="wood-configurator__field">
+      <span class="wood-configurator__label">Finish</span>
+      <p style="margin:0;font-size:0.95rem;">Unfinished (raw wood)</p>
+    </div>
+
+    {%- comment %} ── 2. Product Type ── {% endcomment -%}
+    <div class="wood-configurator__field">
+      <span class="wood-configurator__label">Product Type</span>
+      <div class="wood-configurator__product-type">
+
+        <div class="wood-type-option">
+          <input type="radio" id="type-slab" name="wood-product-type" value="slab" checked>
+          <label for="type-slab">Slab &mdash; No Hardware</label>
+        </div>
+
+        <div class="wood-type-option wood-type-option--hardware">
+          <input type="radio" id="type-shelf" name="wood-product-type" value="shelf">
+          <label for="type-shelf">Shelf with Hardware</label>
+        </div>
+
+      </div>
+    </div>
+
+    {%- comment %} ── 3. Thickness ── {% endcomment -%}
+    <div class="wood-configurator__field">
+      <span class="wood-configurator__label">Thickness</span>
+
+      <div class="wood-configurator__thickness-grid">
+
+        {%- comment %} Coming Soon placeholders {% endcomment -%}
+        {%- assign coming_soon = '0.5,0.75,1,1.5' | split: ',' -%}
+        {%- assign coming_soon_labels = '½",¾",1",1½"' | split: ',' -%}
+        {%- for i in (0..3) -%}
+          <div class="wood-thickness-option wood-thickness-option--coming-soon">
+            <input type="radio" disabled aria-disabled="true">
+            <label>{{ coming_soon_labels[i] }} <span class="wood-coming-soon-badge">Coming Soon</span></label>
+          </div>
+        {%- endfor -%}
+
+        {%- comment %} Available thicknesses {% endcomment -%}
+        <div class="wood-thickness-option">
+          <input type="radio" id="thick-175" name="wood-thickness" value='1.75"' checked>
+          <label for="thick-175">1¾"</label>
+        </div>
+
+        <div class="wood-thickness-option">
+          <input type="radio" id="thick-2" name="wood-thickness" value='2"'>
+          <label for="thick-2">2"</label>
+        </div>
+
+        <div class="wood-thickness-option">
+          <input type="radio" id="thick-range-4" name="wood-thickness" value='2.1-4"'>
+          <label for="thick-range-4">2⅛"&ndash;4"</label>
+        </div>
+
+        <div class="wood-thickness-option">
+          <input type="radio" id="thick-range-6" name="wood-thickness" value='4.1-6"'>
+          <label for="thick-range-6">4⅛"&ndash;6"</label>
+        </div>
+
+      </div>
+
+      {%- comment %} Range sub-input (for manufacturing record — shown for 2.1-4" and 4.1-6") {% endcomment -%}
+      <div class="wood-configurator__thickness-sub" aria-live="polite">
+        <span style="font-size:0.85rem;opacity:0.7;">Your exact thickness:</span>
+        <select id="wood-thickness-sub-whole" class="wood-select" aria-label="Thickness whole inches"></select>
+        <select id="wood-thickness-sub-frac" class="wood-select" aria-label="Thickness fraction"></select>
+        <span class="wood-configurator__unit">"</span>
+        <span style="font-size:0.75rem;opacity:0.6;">(recorded for manufacturing)</span>
+      </div>
+    </div>
+
+    {%- comment %} ── 4. Width ── {% endcomment -%}
+    <div class="wood-configurator__field">
+      <span class="wood-configurator__label">Width</span>
+      <div class="wood-configurator__selects">
+        <select id="wood-width-whole" class="wood-select" aria-label="Width whole inches"></select>
+        <select id="wood-width-frac" class="wood-select" aria-label="Width fraction"></select>
+        <span class="wood-configurator__unit">"</span>
+      </div>
+      <p style="margin:4px 0 0;font-size:0.78rem;opacity:0.6;">9&ndash;96". Any fraction rounds up to the next inch for pricing.</p>
+    </div>
+
+    {%- comment %} ── 5. Depth ── {% endcomment -%}
+    <div class="wood-configurator__field">
+      <span class="wood-configurator__label">Depth</span>
+      <div class="wood-configurator__selects">
+        <select id="wood-depth-range" class="wood-select wood-select--wide" aria-label="Depth range"></select>
+        <select id="wood-depth-whole" class="wood-select" aria-label="Depth whole inches"></select>
+        <select id="wood-depth-frac" class="wood-select" aria-label="Depth fraction"></select>
+        <span class="wood-configurator__unit">"</span>
+      </div>
+      <p style="margin:4px 0 0;font-size:0.78rem;opacity:0.6;">Select the range that contains your measurement. 3&ndash;28" max.</p>
+    </div>
+
+    {%- comment %} ── Price display ── {% endcomment -%}
+    <div class="wood-configurator__price-row">
+      <span class="wood-configurator__price-label">Price</span>
+      <span class="wood-configurator__price-value" id="wood-price-value">—</span>
+    </div>
+    <p class="wood-configurator__price-note" id="wood-price-note" aria-live="polite">Select options above to see price</p>
+
+    {%- comment %} ── Add to Cart ── {% endcomment -%}
+    <button type="button" class="wood-configurator__atc" id="wood-atc-btn" disabled>
+      Add to Cart
+    </button>
+
+    <p class="wood-configurator__message" id="wood-configurator-msg" aria-live="polite"></p>
+
+  </form>
+</section>
+
+<script src="{{ 'wood-configurator.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "Wood Configurator",
+  "tag": "section",
+  "limit": 1,
+  "enabled_on": {
+    "templates": ["product"]
+  },
+  "settings": [],
+  "presets": [
+    {
+      "name": "Wood Configurator"
+    }
+  ]
+}
+{% endschema %}

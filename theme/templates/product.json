@@ -8,6 +8,10 @@
  * ------------------------------------------------------------
  */{
   "sections": {
+    "wood_configurator": {
+      "type": "wood-configurator",
+      "settings": {}
+    },
     "main": {
       "type": "product-information",
       "blocks": {
@@ -468,6 +472,7 @@
     }
   },
   "order": [
+    "wood_configurator",
     "main",
     "product_recommendations_qggXJq"
   ]

@@ -1,0 +1,229 @@
+/* wood-configurator.css — WoodSlabs order form styles */
+
+.wood-configurator {
+  font-family: var(--font-body--family, sans-serif);
+  color: var(--color-foreground, #1a1a1a);
+  max-width: 540px;
+  padding: 24px 0;
+}
+
+.wood-configurator__field {
+  margin-bottom: 20px;
+}
+
+.wood-configurator__label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.875rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+/* Thickness — pill buttons */
+.wood-configurator__thickness-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.wood-thickness-option {
+  position: relative;
+}
+
+.wood-thickness-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.wood-thickness-option label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--color-border, #ccc);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: border-color 0.15s, background 0.15s;
+  user-select: none;
+}
+
+.wood-thickness-option input[type="radio"]:checked + label {
+  border-color: var(--color-foreground, #1a1a1a);
+  background: var(--color-foreground, #1a1a1a);
+  color: var(--color-background, #fff);
+}
+
+.wood-thickness-option--coming-soon label {
+  opacity: 0.45;
+  cursor: not-allowed;
+  border-style: dashed;
+}
+
+.wood-coming-soon-badge {
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+/* Thickness range sub-input */
+.wood-configurator__thickness-sub {
+  display: none;
+  margin-top: 10px;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.wood-configurator__thickness-sub.is-visible {
+  display: flex;
+}
+
+/* Product type */
+.wood-configurator__product-type {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.wood-type-option {
+  position: relative;
+}
+
+.wood-type-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.wood-type-option label {
+  display: block;
+  padding: 10px 18px;
+  border: 1px solid var(--color-border, #ccc);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: border-color 0.15s, background 0.15s;
+  user-select: none;
+}
+
+.wood-type-option input[type="radio"]:checked + label {
+  border-color: var(--color-foreground, #1a1a1a);
+  background: var(--color-foreground, #1a1a1a);
+  color: var(--color-background, #fff);
+}
+
+.wood-type-option--disabled label {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Selects */
+.wood-configurator__selects {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.wood-select {
+  padding: 8px 10px;
+  border: 1px solid var(--color-border, #ccc);
+  border-radius: 4px;
+  background: var(--color-background, #fff);
+  color: var(--color-foreground, #1a1a1a);
+  font-size: 0.9rem;
+  cursor: pointer;
+  min-width: 70px;
+}
+
+.wood-select:focus {
+  outline: 2px solid var(--color-foreground, #1a1a1a);
+  outline-offset: 2px;
+}
+
+.wood-select:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.wood-select--wide {
+  min-width: 130px;
+}
+
+.wood-configurator__unit {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* Price */
+.wood-configurator__price-row {
+  margin: 24px 0 4px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.wood-configurator__price-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.wood-configurator__price-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+}
+
+.wood-configurator__price-note {
+  font-size: 0.8rem;
+  opacity: 0.6;
+  margin-top: 4px;
+}
+
+/* Add to Cart */
+.wood-configurator__atc {
+  display: block;
+  width: 100%;
+  padding: 14px 24px;
+  margin-top: 16px;
+  background: var(--color-foreground, #1a1a1a);
+  color: var(--color-background, #fff);
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.wood-configurator__atc:hover {
+  opacity: 0.85;
+}
+
+.wood-configurator__atc:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.wood-configurator__message {
+  margin-top: 10px;
+  font-size: 0.875rem;
+  min-height: 1.2em;
+}
+
+.wood-configurator__message--error { color: #c0392b; }
+.wood-configurator__message--success { color: #27ae60; }
+
+@media (max-width: 480px) {
+  .wood-configurator__thickness-grid { gap: 6px; }
+  .wood-configurator__product-type { flex-direction: column; }
+}
