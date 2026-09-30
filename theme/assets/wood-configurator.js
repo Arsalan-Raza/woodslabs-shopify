@@ -40,12 +40,12 @@
   };
 
   // ── DOM refs ───────────────────────────────────────────────────────────────
-  let form, productTypeInputs, thicknessInputs,
+  let configuratorEl, productTypeInputs, thicknessInputs,
       thicknessSub, thicknessSubWhole, thicknessSubFrac,
       widthWholeEl, widthFracEl,
       depthRangeEl, depthWholeEl, depthFracEl,
-      priceValue, priceNote, atcBtn, msgEl,
-      variantIdEl;
+      priceValue, priceNote, msgEl,
+      horizonForm, horizonAtcBtn;
 
   // ── Helpers ────────────────────────────────────────────────────────────────
   function roundUp(whole, frac) {
@@ -60,8 +60,7 @@
     return '24.1-28'; // fallback
   }
 
-  function buildFracOptions(selectEl, disabledAt) {
-    // disabledAt = the whole-inch value at which fraction must be disabled
+  function buildFracOptions(selectEl) {
     selectEl.innerHTML = '';
     for (let i = 0; i <= 15; i++) {
       const opt = document.createElement('option');
@@ -91,6 +90,54 @@
     }
   }
 
+  // ── Horizon form integration ───────────────────────────────────────────────
+
+  function syncFormProperties() {
+    if (!horizonForm) return;
+    clearFormProperties();
+    if (!state.price || !state.signature) return;
+
+    const pricingWidth = roundUp(state.widthWhole, state.widthFrac);
+    const pricingDepth = depthPricingRange(state.depthWhole, state.depthFrac);
+    const widthFracLabel = state.widthFrac > 0 ? ' ' + FRAC_LABELS[state.widthFrac] : '';
+    const depthFracLabel = state.depthFrac > 0 ? ' ' + FRAC_LABELS[state.depthFrac] : '';
+    const thicknessDisplay = buildThicknessDisplay();
+
+    const properties = {
+      'Material':           'Material Type 10',
+      'Finish':             'Unfinished',
+      'Product Type':       state.productType === 'shelf' ? 'Shelf with Hardware' : 'Slab (No Hardware)',
+      'Thickness':          thicknessDisplay,
+      'Width':              state.widthWhole + widthFracLabel + '"',
+      'Depth (selected)':   state.depthRange + '"',
+      'Depth (exact)':      state.depthWhole + depthFracLabel + '"',
+      '_pricing_width':     String(pricingWidth),
+      '_pricing_depth':     pricingDepth,
+      '_pricing_thickness': state.thickness,
+      '_price':             state.price.toFixed(2),
+      '_sig':               state.signature,
+    };
+
+    Object.entries(properties).forEach(([key, value]) => {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'properties[' + key + ']';
+      input.value = value;
+      input.dataset.woodProp = '1';
+      horizonForm.appendChild(input);
+    });
+  }
+
+  function clearFormProperties() {
+    if (!horizonForm) return;
+    horizonForm.querySelectorAll('[data-wood-prop]').forEach(function (el) { el.remove(); });
+  }
+
+  function setAtcReady(ready) {
+    if (!horizonAtcBtn) return;
+    horizonAtcBtn.disabled = !ready;
+  }
+
   // ── Price fetch ────────────────────────────────────────────────────────────
   let priceDebounce = null;
 
@@ -102,8 +149,9 @@
       const hardware = (state.productType === 'shelf') ? 'yes' : 'no';
 
       priceValue.textContent = '—';
-      priceNote.textContent  = 'Looking up price…';
-      atcBtn.disabled = true;
+      priceNote.textContent  = 'Looking up price\u2026';
+      setAtcReady(false);
+      clearFormProperties();
 
       try {
         const params = new URLSearchParams({
@@ -124,6 +172,7 @@
           priceNote.textContent  = 'No price available for this combination.';
           state.price     = null;
           state.signature = null;
+          setAtcReady(false);
           return;
         }
 
@@ -132,13 +181,15 @@
 
         priceValue.textContent = '$' + data.price.toFixed(2);
         priceNote.textContent  = '';
-        atcBtn.disabled = false;
+        setAtcReady(true);
+        syncFormProperties();
 
       } catch (err) {
         priceValue.textContent = '—';
         priceNote.textContent  = 'Could not load price. Please try again.';
         state.price     = null;
         state.signature = null;
+        setAtcReady(false);
       }
     }, 250);
   }
@@ -146,13 +197,12 @@
   // ── Availability rules ─────────────────────────────────────────────────────
   function applyAvailabilityRules() {
     const hardwareOk = HARDWARE_RANGES.has(state.depthRange);
-    const hwOption = form.querySelector('.wood-type-option--hardware');
+    const hwOption = configuratorEl.querySelector('.wood-type-option--hardware');
 
     if (!hardwareOk) {
-      // Force back to slab if hardware was selected
       if (state.productType === 'shelf') {
         state.productType = 'slab';
-        form.querySelector('input[name="wood-product-type"][value="slab"]').checked = true;
+        configuratorEl.querySelector('input[name="wood-product-type"][value="slab"]').checked = true;
       }
       if (hwOption) hwOption.classList.add('wood-type-option--disabled');
     } else {
@@ -191,27 +241,52 @@
     enforceCeilingFrac(min, thicknessSubFrac, ceiling);
   }
 
+  // ── Thickness display ──────────────────────────────────────────────────────
+  function buildThicknessDisplay() {
+    if (state.thickness === '2.1-4"' || state.thickness === '4.1-6"') {
+      if (state.thicknessRangeWhole) {
+        const fracPart = state.thicknessRangeFrac > 0
+          ? ' ' + FRAC_LABELS[state.thicknessRangeFrac]
+          : '';
+        return state.thicknessRangeWhole + fracPart + '" (' + state.thickness + ' range)';
+      }
+    }
+    return state.thickness;
+  }
+
+  // ── Messages ───────────────────────────────────────────────────────────────
+  function showMessage(text, type) {
+    if (!msgEl) return;
+    msgEl.textContent = text;
+    msgEl.className = 'wood-configurator__message wood-configurator__message--' + type;
+  }
+
   // ── Event wiring ───────────────────────────────────────────────────────────
   function init() {
-    form = document.getElementById('wood-configurator-form');
-    if (!form) return;
+    configuratorEl = document.getElementById('wood-configurator-section');
+    if (!configuratorEl) return;
 
-    // Refs
-    productTypeInputs  = form.querySelectorAll('input[name="wood-product-type"]');
-    thicknessInputs    = form.querySelectorAll('input[name="wood-thickness"]');
-    thicknessSub       = form.querySelector('.wood-configurator__thickness-sub');
-    thicknessSubWhole  = form.querySelector('#wood-thickness-sub-whole');
-    thicknessSubFrac   = form.querySelector('#wood-thickness-sub-frac');
-    widthWholeEl       = form.querySelector('#wood-width-whole');
-    widthFracEl        = form.querySelector('#wood-width-frac');
-    depthRangeEl       = form.querySelector('#wood-depth-range');
-    depthWholeEl       = form.querySelector('#wood-depth-whole');
-    depthFracEl        = form.querySelector('#wood-depth-frac');
+    // Configurator field refs
+    productTypeInputs  = configuratorEl.querySelectorAll('input[name="wood-product-type"]');
+    thicknessInputs    = configuratorEl.querySelectorAll('input[name="wood-thickness"]');
+    thicknessSub       = configuratorEl.querySelector('.wood-configurator__thickness-sub');
+    thicknessSubWhole  = configuratorEl.querySelector('#wood-thickness-sub-whole');
+    thicknessSubFrac   = configuratorEl.querySelector('#wood-thickness-sub-frac');
+    widthWholeEl       = configuratorEl.querySelector('#wood-width-whole');
+    widthFracEl        = configuratorEl.querySelector('#wood-width-frac');
+    depthRangeEl       = configuratorEl.querySelector('#wood-depth-range');
+    depthWholeEl       = configuratorEl.querySelector('#wood-depth-whole');
+    depthFracEl        = configuratorEl.querySelector('#wood-depth-frac');
     priceValue         = document.getElementById('wood-price-value');
     priceNote          = document.getElementById('wood-price-note');
-    atcBtn             = document.getElementById('wood-atc-btn');
     msgEl              = document.getElementById('wood-configurator-msg');
-    variantIdEl        = form.querySelector('[data-variant-id]');
+
+    // Horizon form and ATC button
+    horizonForm   = document.querySelector('[data-type="add-to-cart-form"]');
+    horizonAtcBtn = document.querySelector('button[name="add"]');
+
+    // Disable ATC until a valid price is loaded
+    setAtcReady(false);
 
     // Build width options (9–96)
     buildWholeOptions(widthWholeEl, 9, 96);
@@ -252,12 +327,12 @@
       });
     });
 
-    // Thickness sub-inputs (manufacturing record only — re-fetch not needed for pricing)
+    // Thickness sub-inputs (manufacturing record only)
     thicknessSubWhole.addEventListener('change', () => {
       state.thicknessRangeWhole = parseInt(thicknessSubWhole.value);
       const ceiling = state.thickness === '2.1-4"' ? 4 : 6;
       enforceCeilingFrac(thicknessSubWhole.value, thicknessSubFrac, ceiling);
-      state.thicknessRangeFrac = 0; // ceiling resets frac
+      state.thicknessRangeFrac = 0;
     });
     thicknessSubFrac.addEventListener('change', () => {
       state.thicknessRangeFrac = parseInt(thicknessSubFrac.value);
@@ -298,7 +373,6 @@
     // Depth fraction
     depthFracEl.addEventListener('change', () => {
       state.depthFrac = parseInt(depthFracEl.value);
-      // If rounding causes range change, update range select
       const actualRange = depthPricingRange(state.depthWhole, state.depthFrac);
       if (actualRange !== state.depthRange) {
         state.depthRange = actualRange;
@@ -308,102 +382,19 @@
       fetchPrice();
     });
 
-    // Add to Cart
-    atcBtn.addEventListener('click', addToCart);
+    // Guard against submitting without a valid price/signature
+    if (horizonForm) {
+      horizonForm.addEventListener('submit', function (e) {
+        if (!state.price || !state.signature) {
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          showMessage('Please wait for the price to load before adding to cart.', 'error');
+        }
+      }, true); // capture phase fires before Horizon's handler
+    }
 
     // Initial price fetch
     fetchPrice();
-  }
-
-  // ── Add to cart ────────────────────────────────────────────────────────────
-  async function addToCart() {
-    if (!state.price || !state.signature) return;
-
-    const variantId = variantIdEl ? variantIdEl.dataset.variantId : null;
-    if (!variantId) {
-      showMessage('Product not configured correctly. Missing variant.', 'error');
-      return;
-    }
-
-    const pricingWidth = roundUp(state.widthWhole, state.widthFrac);
-    const pricingDepth = depthPricingRange(state.depthWhole, state.depthFrac);
-
-    // Build full order record (width/depth exact measurement for manufacturing)
-    const widthFracLabel = state.widthFrac > 0 ? ' ' + FRAC_LABELS[state.widthFrac] : '';
-    const depthFracLabel = state.depthFrac > 0 ? ' ' + FRAC_LABELS[state.depthFrac] : '';
-    const thicknessDisplay = buildThicknessDisplay();
-
-    const properties = {
-      'Material':         'Material Type 10',
-      'Finish':           'Unfinished',
-      'Product Type':     state.productType === 'shelf' ? 'Shelf with Hardware' : 'Slab (No Hardware)',
-      'Thickness':        thicknessDisplay,
-      'Width':            state.widthWhole + widthFracLabel + '"',
-      'Depth (selected)': state.depthRange + '"',
-      'Depth (exact)':    state.depthWhole + depthFracLabel + '"',
-      '_pricing_width':   String(pricingWidth),
-      '_pricing_depth':   pricingDepth,
-      '_pricing_thickness': state.thickness,
-      '_price':           state.price.toFixed(2),
-      '_sig':             state.signature,
-    };
-
-    atcBtn.disabled = true;
-    atcBtn.textContent = 'Adding…';
-    clearMessage();
-
-    try {
-      const res = await fetch('/cart/add.js', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          items: [{
-            id:         parseInt(variantId),
-            quantity:   1,
-            properties: properties,
-          }],
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data.status && data.status !== 200) {
-        showMessage(data.description || 'Could not add to cart.', 'error');
-      } else {
-        showMessage('Added to cart!', 'success');
-        // Trigger cart drawer / update
-        document.dispatchEvent(new CustomEvent('cart:refresh', { bubbles: true }));
-      }
-    } catch (err) {
-      showMessage('Error adding to cart. Please try again.', 'error');
-    } finally {
-      atcBtn.disabled = false;
-      atcBtn.textContent = 'Add to Cart';
-    }
-  }
-
-  function buildThicknessDisplay() {
-    if (state.thickness === '2.1-4"' || state.thickness === '4.1-6"') {
-      if (state.thicknessRangeWhole) {
-        const fracPart = state.thicknessRangeFrac > 0
-          ? ' ' + FRAC_LABELS[state.thicknessRangeFrac]
-          : '';
-        return state.thicknessRangeWhole + fracPart + '" (' + state.thickness + ' range)';
-      }
-    }
-    return state.thickness;
-  }
-
-  function showMessage(text, type) {
-    if (!msgEl) return;
-    msgEl.textContent = text;
-    msgEl.className = 'wood-configurator__message wood-configurator__message--' + type;
-  }
-
-  function clearMessage() {
-    if (!msgEl) return;
-    msgEl.textContent = '';
-    msgEl.className = 'wood-configurator__message';
   }
 
   // ── Boot ───────────────────────────────────────────────────────────────────
