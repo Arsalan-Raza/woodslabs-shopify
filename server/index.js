@@ -49,7 +49,9 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }));
 app.use('/auth/callback', authRouter);
 app.use('/', authRouter);
 
-// Price lookup — accessed via Shopify App Proxy at /apps/woodslabs/price
+// Price lookup — App Proxy strips "/apps/woodslabs" prefix before forwarding,
+// so the real path on this server is /price. Keep the full path for direct testing.
+app.use('/price', priceRouter);
 app.use('/apps/woodslabs/price', priceRouter);
 
 // CSV import admin — password protected
