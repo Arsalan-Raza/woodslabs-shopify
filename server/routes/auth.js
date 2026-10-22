@@ -79,16 +79,47 @@ async function activateCartTransform(shop, token) {
   }
 }
 
-// GET / — Shopify redirects here to begin install
-router.get('/', (req, res) => {
+// GET / — either the Shopify Admin opens the app, or the merchant visits the install URL
+router.get('/', async (req, res) => {
   const { shop, hmac } = req.query;
 
-  if (!shop) return res.status(400).send('Missing shop parameter.');
-
-  if (hmac && !validateHmac(req.query)) {
-    return res.status(403).send('Invalid HMAC.');
+  // No shop param — serve a plain status page (Railway health / direct browser visit)
+  if (!shop) {
+    return res.send(`<!DOCTYPE html><html><head><title>WoodSlabs API</title></head>
+<body style="font-family:sans-serif;max-width:640px;margin:80px auto;padding:0 20px">
+<h1>WoodSlabs Configurator</h1>
+<p>Server is running. This app provides price lookup and cart transform services for the WoodSlabs Shopify store.</p>
+<p><a href="/admin/import">CSV Import Admin</a></p>
+</body></html>`);
   }
 
+  // Shopify Admin opens the app with HMAC — validate it
+  if (hmac && !validateHmac(req.query)) {
+    return res.status(403).send('Invalid HMAC signature.');
+  }
+
+  // Check if this shop is already installed (has a token stored)
+  try {
+    const [rows] = await db.execute('SELECT token FROM shop_tokens WHERE shop = ?', [shop]);
+    if (rows.length > 0) {
+      // Already installed — show a simple status page
+      return res.send(`<!DOCTYPE html><html><head><title>WoodSlabs Configurator</title>
+<meta http-equiv="Content-Security-Policy" content="frame-ancestors https://${shop} https://admin.shopify.com">
+</head>
+<body style="font-family:sans-serif;max-width:640px;margin:80px auto;padding:0 20px">
+<h1>WoodSlabs Configurator</h1>
+<p style="color:green">&#10003; App is installed and active on <strong>${shop}</strong></p>
+<ul>
+<li>App Proxy: <code>/apps/woodslabs/price</code> → price lookup</li>
+<li>Cart Transform: enforcing signed prices at checkout</li>
+</ul>
+<p><a href="https://${shop}/admin/themes" style="margin-right:16px">Theme Editor</a>
+<a href="/admin/import">CSV Import</a></p>
+</body></html>`);
+    }
+  } catch (_) { /* DB not ready yet — fall through to OAuth */ }
+
+  // Not installed (or DB unavailable) — start OAuth flow
   const nonce = crypto.randomBytes(16).toString('hex');
   const authUrl = `https://${shop}/admin/oauth/authorize?client_id=${API_KEY}&scope=${SCOPES}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&state=${nonce}`;
   res.redirect(authUrl);
