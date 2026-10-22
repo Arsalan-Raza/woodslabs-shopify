@@ -120,9 +120,13 @@ router.get('/', async (req, res) => {
   } catch (_) { /* DB not ready yet — fall through to OAuth */ }
 
   // Not installed (or DB unavailable) — start OAuth flow
+  // Use JS top-frame redirect instead of res.redirect() so it works when
+  // Shopify Admin loads the app in an iframe (OAuth page blocks iframe loads).
   const nonce = crypto.randomBytes(16).toString('hex');
   const authUrl = `https://${shop}/admin/oauth/authorize?client_id=${API_KEY}&scope=${SCOPES}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&state=${nonce}`;
-  res.redirect(authUrl);
+  return res.send(`<!DOCTYPE html><html><head>
+<script>window.top.location.href = ${JSON.stringify(authUrl)};</script>
+</head><body>Redirecting to install&hellip;</body></html>`);
 });
 
 // GET /auth/callback — Shopify redirects here after merchant authorizes
