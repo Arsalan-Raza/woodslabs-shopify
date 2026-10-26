@@ -51,8 +51,7 @@ app.use(express.urlencoded({ extended: true }));
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
-// Shopify OAuth install flow
-app.use('/auth/callback', authRouter);
+// Shopify OAuth install flow (handles GET / and GET /auth/callback)
 app.use('/', authRouter);
 
 // Price lookup — App Proxy strips "/apps/woodslabs" prefix before forwarding,
