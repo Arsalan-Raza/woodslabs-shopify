@@ -1,5 +1,8 @@
 {
   "name": "woodslabs-configurator-app",
   "version": "1.0.0",
-  "private": true
+  "private": true,
+  "dependencies": {
+    "@shopify/shopify_function": "~2.0.0"
+  }
 }
