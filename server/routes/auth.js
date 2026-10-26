@@ -62,7 +62,7 @@ async function activateCartTransform(shop, token) {
 
     // Create the cart transform (idempotent — Shopify returns error if already exists)
     const createResult = await shopifyGraphQL(shop, token,
-      `mutation cartTransformCreate($functionId: ID!) {
+      `mutation cartTransformCreate($functionId: String!) {
         cartTransformCreate(functionId: $functionId) {
           cartTransform { id }
           userErrors { field message }
