@@ -44,14 +44,27 @@ async function activateCartTransform(shop, token) {
       }
     }`);
 
+    // Log all functions so we can see what's installed and which app they belong to
+    const allFns = fnResult.data?.shopifyFunctions?.nodes || [];
+    console.log(`[CartTransform] All functions (${allFns.length}):`, JSON.stringify(
+      allFns.map(n => ({ id: n.id, handle: n.handle, apiKey: n.app?.apiKey }))
+    ));
+    console.log(`[CartTransform] Looking for handle=${CART_TRANSFORM_HANDLE} apiKey=${API_KEY}`);
+
     // Filter by both handle AND our app's API key so we don't pick up a
     // function with the same handle deployed by a different installed app.
-    const fn = fnResult.data?.shopifyFunctions?.nodes?.find(
+    const fn = allFns.find(
       n => n.handle === CART_TRANSFORM_HANDLE && n.app?.apiKey === API_KEY
     );
 
     if (!fn) {
-      console.log('[CartTransform] Function not found — deploy the extension first.');
+      console.log('[CartTransform] Function not found in our app — trying handle-only match as fallback');
+      const fallback = allFns.find(n => n.handle === CART_TRANSFORM_HANDLE);
+      if (fallback) {
+        console.log(`[CartTransform] Fallback found: id=${fallback.id} apiKey=${fallback.app?.apiKey}`);
+      } else {
+        console.log('[CartTransform] No function with this handle — deploy the extension first.');
+      }
       return;
     }
 
