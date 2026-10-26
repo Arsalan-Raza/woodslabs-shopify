@@ -53,7 +53,12 @@ async function activateCartTransform(shop, token) {
       return;
     }
 
-    console.log(`[CartTransform] Found function: ${fn.id}`);
+    // Ensure full GID — Shopify sometimes returns bare UUID from shopifyFunctions
+    const functionGid = fn.id.startsWith('gid://')
+      ? fn.id
+      : `gid://shopify/ShopifyFunction/${fn.id}`;
+
+    console.log(`[CartTransform] Found function GID: ${functionGid}`);
 
     // Create the cart transform (idempotent — Shopify returns error if already exists)
     const createResult = await shopifyGraphQL(shop, token,
@@ -63,8 +68,13 @@ async function activateCartTransform(shop, token) {
           userErrors { field message }
         }
       }`,
-      { functionId: fn.id }
+      { functionId: functionGid }
     );
+
+    // Log top-level GraphQL errors (auth/scope issues show here, not in userErrors)
+    if (createResult.errors) {
+      console.error(`[CartTransform] GraphQL errors: ${JSON.stringify(createResult.errors)}`);
+    }
 
     const errors = createResult.data?.cartTransformCreate?.userErrors || [];
     if (errors.length > 0) {
@@ -73,7 +83,7 @@ async function activateCartTransform(shop, token) {
       console.log(`[CartTransform] Activation response: ${msg}`);
     } else {
       const ctId = createResult.data?.cartTransformCreate?.cartTransform?.id;
-      console.log(`[CartTransform] Activated: ${ctId}`);
+      console.log(`[CartTransform] Activated: ${ctId || '(no ID returned — may already be active)'}`);
     }
   } catch (err) {
     console.error('[CartTransform] Activation error:', err.message);
@@ -170,6 +180,20 @@ router.get('/auth/callback', async (req, res) => {
   } catch (err) {
     console.error('OAuth callback error:', err.message);
     res.status(500).send('OAuth error: ' + err.message);
+  }
+});
+
+// GET /admin/reactivate?shop=... — re-run Cart Transform activation using stored token
+router.get('/admin/reactivate', async (req, res) => {
+  const { shop } = req.query;
+  if (!shop) return res.status(400).send('Missing shop param.');
+  try {
+    const [rows] = await db.execute('SELECT token FROM shop_tokens WHERE shop = ?', [shop]);
+    if (!rows.length) return res.status(404).send('Shop not installed.');
+    await activateCartTransform(shop, rows[0].token);
+    res.send('Cart Transform activation attempted — check Railway logs for result.');
+  } catch (err) {
+    res.status(500).send('Error: ' + err.message);
   }
 });
 
