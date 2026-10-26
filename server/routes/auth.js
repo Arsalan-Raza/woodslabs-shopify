@@ -40,12 +40,14 @@ async function activateCartTransform(shop, token) {
     // Find the wood-cart-transform function ID
     const fnResult = await shopifyGraphQL(shop, token, `{
       shopifyFunctions(first: 50) {
-        nodes { id apiType handle }
+        nodes { id apiType handle app { apiKey } }
       }
     }`);
 
+    // Filter by both handle AND our app's API key so we don't pick up a
+    // function with the same handle deployed by a different installed app.
     const fn = fnResult.data?.shopifyFunctions?.nodes?.find(
-      n => n.handle === CART_TRANSFORM_HANDLE
+      n => n.handle === CART_TRANSFORM_HANDLE && n.app?.apiKey === API_KEY
     );
 
     if (!fn) {
