@@ -17,6 +17,7 @@ function validateHmac(query) {
   if (!hmac) return false;
   const message = Object.keys(rest).sort().map(k => `${k}=${rest[k]}`).join('&');
   const digest = crypto.createHmac('sha256', API_SECRET).update(message).digest('hex');
+  if (digest.length !== hmac.length) return false;
   return crypto.timingSafeEqual(Buffer.from(digest), Buffer.from(hmac));
 }
 
